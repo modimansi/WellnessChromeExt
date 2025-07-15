@@ -1,0 +1,32 @@
+{
+  "name": "wellness-chrome-extension",
+  "version": "1.0.0",
+  "description": "A Chrome extension for wellness breaks, nature connection, and mindful journaling",
+  "main": "create-icons.js",
+  "scripts": {
+    "create-icons": "node create-icons.js",
+    "build": "npm run create-icons"
+  },
+  "keywords": [
+    "chrome-extension",
+    "wellness",
+    "mindfulness",
+    "nature",
+    "journaling",
+    "breaks",
+    "health"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "sharp": "^0.32.6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/wellness-chrome-extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/wellness-chrome-extension/issues"
+  },
+  "homepage": "https://github.com/yourusername/wellness-chrome-extension#readme"
+}

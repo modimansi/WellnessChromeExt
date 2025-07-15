@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wellness Break Assistant</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🌿 Wellness Break</h1>
+            <div class="tab-nav">
+                <button class="tab-btn active" data-tab="nature">Nature & Journal</button>
+                <button class="tab-btn" data-tab="breaks">Smart Breaks</button>
+            </div>
+        </header>
+
+        <!-- Nature Connection & Journaling Tab -->
+        <div class="tab-content active" id="nature-tab">
+            <div class="feature-section">
+                <h2>🌳 Nature Connection</h2>
+                <div class="city-input-container">
+                    <input type="text" id="city-input" placeholder="Enter your city (e.g., New York, NY)" class="city-input">
+                    <button id="nature-break-btn" class="primary-btn">Find Nature Nearby</button>
+                </div>
+                <div id="nature-suggestions" class="suggestions-container" style="display: none;"></div>
+                <div id="loading-indicator" class="loading-indicator" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Finding nature spots near you...</p>
+                </div>
+            </div>
+
+            <div class="feature-section">
+                <h2>📝 Mindful Journaling</h2>
+                <div id="journal-prompts" class="prompts-container">
+                    <p id="current-prompt">Select a nature location to get mindful prompts</p>
+                    <textarea id="journal-entry" placeholder="Write your mindful reflection here..." rows="6"></textarea>
+                    <button id="save-journal" class="secondary-btn">Save Entry</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Smart Break Reminders Tab -->
+        <div class="tab-content" id="breaks-tab">
+            <div class="feature-section">
+                <h2>⏰ Break Settings</h2>
+                <div class="settings-grid">
+                    <label>
+                        Break Interval:
+                        <select id="break-interval">
+                            <option value="25">25 minutes (Pomodoro)</option>
+                            <option value="30">30 minutes</option>
+                            <option value="45">45 minutes</option>
+                            <option value="60">1 hour</option>
+                            <option value="90">1.5 hours</option>
+                            <option value="120">2 hours</option>
+                        </select>
+                    </label>
+                    <button id="toggle-reminders" class="toggle-btn">Enable Reminders</button>
+                </div>
+            </div>
+
+            <div class="feature-section">
+                <h2>🧘 Break Activities</h2>
+                <div class="activities-grid">
+                    <button class="activity-btn" data-activity="breathe">
+                        <span class="activity-icon">💨</span>
+                        <span class="activity-name">Breathe</span>
+                    </button>
+                    <button class="activity-btn" data-activity="stretch">
+                        <span class="activity-icon">🤸</span>
+                        <span class="activity-name">Stretch</span>
+                    </button>
+                    <button class="activity-btn" data-activity="hydrate">
+                        <span class="activity-icon">💧</span>
+                        <span class="activity-name">Hydrate</span>
+                    </button>
+                    <button class="activity-btn" data-activity="gratitude">
+                        <span class="activity-icon">🙏</span>
+                        <span class="activity-name">Gratitude</span>
+                    </button>
+                    <button class="activity-btn" data-activity="eyes">
+                        <span class="activity-icon">👀</span>
+                        <span class="activity-name">Rest Eyes</span>
+                    </button>
+                    <button class="activity-btn" data-activity="move">
+                        <span class="activity-icon">🚶</span>
+                        <span class="activity-name">Move</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Activity Modals -->
+            <div id="breathing-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h3>Breathing Exercise</h3>
+                    <div class="breathing-container">
+                        <div id="breathing-circle" class="breathing-circle"></div>
+                        <div id="breathing-text">Click to start</div>
+                        <div class="breathing-controls">
+                            <button id="start-breathing">Start</button>
+                            <select id="breathing-type">
+                                <option value="478">4-7-8 Breathing</option>
+                                <option value="box">Box Breathing</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="stretch-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h3>Desk Stretches</h3>
+                    <div id="stretch-content">
+                        <div class="stretch-item">
+                            <h4>Neck Rolls</h4>
+                            <p>Gently roll your head in circles. 5 times each direction.</p>
+                        </div>
+                        <div class="stretch-item">
+                            <h4>Shoulder Shrugs</h4>
+                            <p>Lift shoulders to ears, hold 5 seconds, release. Repeat 10 times.</p>
+                        </div>
+                        <div class="stretch-item">
+                            <h4>Wrist Circles</h4>
+                            <p>Rotate wrists in circles. 10 times each direction.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="hydration-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h3>Hydration Tracker</h3>
+                    <div class="hydration-stats">
+                        <div class="water-counter">
+                            <span id="water-count">0</span> glasses today
+                        </div>
+                        <button id="log-water" class="water-btn">💧 Log Water</button>
+                        <div class="hydration-goal">Goal: 8 glasses</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="gratitude-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h3>Gratitude Moment</h3>
+                    <div class="gratitude-content">
+                        <p id="gratitude-prompt">What's one good thing right now?</p>
+                        <textarea id="gratitude-response" placeholder="Take a moment to reflect..."></textarea>
+                        <button id="save-gratitude">Save Reflection</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="api-config.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html> 

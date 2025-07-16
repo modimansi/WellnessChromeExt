@@ -44,30 +44,166 @@ class WellnessExtension {
 
     // Nature Connection Feature
     setupNatureConnection() {
+        const detectLocationBtn = document.getElementById('detect-location-btn');
         const natureBtn = document.getElementById('nature-break-btn');
-        const cityInput = document.getElementById('city-input');
+        const locationStatus = document.getElementById('location-status');
+
+        // Store user location data
+        this.userLocation = null;
+        this.userCity = null;
+
+        detectLocationBtn.addEventListener('click', () => {
+            this.detectUserLocation();
+        });
 
         natureBtn.addEventListener('click', () => {
             this.findNearbyNature();
         });
+    }
 
-        // Allow Enter key to trigger search
-        cityInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.findNearbyNature();
+    async detectUserLocation() {
+        const detectLocationBtn = document.getElementById('detect-location-btn');
+        const natureBtn = document.getElementById('nature-break-btn');
+        const locationStatus = document.getElementById('location-status');
+
+        // Check if geolocation is supported
+        if (!navigator.geolocation) {
+            this.displayLocationError('Geolocation is not supported by this browser');
+            return;
+        }
+
+        // Update UI to show detecting state
+        locationStatus.className = 'location-status detecting';
+        locationStatus.innerHTML = '<p>🕐 Detecting your location...</p>';
+        detectLocationBtn.disabled = true;
+        detectLocationBtn.textContent = 'Detecting...';
+
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 10000, // 10 seconds timeout
+            maximumAge: 300000 // Accept cached position up to 5 minutes old
+        };
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                // Success callback
+                this.userLocation = {
+                    lat: position.coords.latitude,
+                    lon: position.coords.longitude
+                };
+
+                try {
+                    // Reverse geocode to get city name
+                    const cityData = await this.reverseGeocode(this.userLocation.lat, this.userLocation.lon);
+                    this.userCity = cityData;
+
+                    // Update UI to show success
+                    locationStatus.className = 'location-status detected';
+                    locationStatus.innerHTML = `
+                        <p>✅ Location detected: ${cityData}</p>
+                        <p style="font-size: 12px; margin-top: 4px; color: #888;">
+                            Lat: ${this.userLocation.lat.toFixed(4)}, Lon: ${this.userLocation.lon.toFixed(4)}
+                        </p>
+                    `;
+
+                    // Show the "Find Nature Nearby" button
+                    detectLocationBtn.style.display = 'none';
+                    natureBtn.style.display = 'block';
+
+                } catch (error) {
+                    console.error('Error reverse geocoding:', error);
+                    // Still allow searching even if we can't get city name
+                    this.userCity = 'Your Location';
+                    
+                    locationStatus.className = 'location-status detected';
+                    locationStatus.innerHTML = `
+                        <p>✅ Location detected successfully</p>
+                        <p style="font-size: 12px; margin-top: 4px; color: #888;">
+                            Lat: ${this.userLocation.lat.toFixed(4)}, Lon: ${this.userLocation.lon.toFixed(4)}
+                        </p>
+                    `;
+
+                    detectLocationBtn.style.display = 'none';
+                    natureBtn.style.display = 'block';
+                }
+            },
+            (error) => {
+                // Error callback
+                detectLocationBtn.disabled = false;
+                detectLocationBtn.textContent = '🗺️ Use My Location';
+
+                let errorMessage;
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage = 'Location access denied. Please enable location permissions and try again.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage = 'Location information unavailable. Please check your connection and try again.';
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage = 'Location request timed out. Please try again.';
+                        break;
+                    default:
+                        errorMessage = 'An unknown error occurred while retrieving location.';
+                        break;
+                }
+                
+                this.displayLocationError(errorMessage);
+            },
+            options
+        );
+    }
+
+    async reverseGeocode(lat, lon) {
+        try {
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1`
+            );
+            const data = await response.json();
+            
+            if (data && data.address) {
+                const address = data.address;
+                let cityName = address.city || address.town || address.village || address.municipality;
+                
+                if (cityName) {
+                    const state = address.state || address.province;
+                    const country = address.country;
+                    
+                    if (state && country === 'United States') {
+                        return `${cityName}, ${state}`;
+                    } else if (state) {
+                        return `${cityName}, ${state}`;
+                    } else if (country && country !== 'United States') {
+                        return `${cityName}, ${country}`;
+                    } else {
+                        return cityName;
+                    }
+                } else {
+                    // Fallback to using display_name
+                    const parts = data.display_name.split(',');
+                    return parts.slice(0, 2).join(',').trim();
+                }
             }
-        });
+            
+            return 'Location Found';
+        } catch (error) {
+            console.error('Error in reverse geocoding:', error);
+            return 'Your Location';
+        }
+    }
+
+    displayLocationError(message) {
+        const locationStatus = document.getElementById('location-status');
+        locationStatus.className = 'location-status error';
+        locationStatus.innerHTML = `<p>❌ ${message}</p>`;
     }
 
     async findNearbyNature() {
-        const cityInput = document.getElementById('city-input');
         const suggestionsContainer = document.getElementById('nature-suggestions');
         const loadingIndicator = document.getElementById('loading-indicator');
         
-        const city = cityInput.value.trim();
-        
-        if (!city) {
-            alert('Please enter a city name');
+        if (!this.userLocation) {
+            alert('Please detect your location first');
             return;
         }
 
@@ -76,22 +212,19 @@ class WellnessExtension {
         suggestionsContainer.style.display = 'none';
         
         try {
-            // Get coordinates for the city
-            const coordinates = await this.geocodeCity(city);
-            
-            if (!coordinates) {
-                throw new Error('City not found');
-            }
-
-            // Find nature spots near the city
-            const natureSpots = await this.findNatureSpotsNearby(coordinates.lat, coordinates.lon, city);
+            // Find nature spots near the detected location
+            const natureSpots = await this.findNatureSpotsNearby(
+                this.userLocation.lat, 
+                this.userLocation.lon, 
+                this.userCity || 'Your Location'
+            );
             
             loadingIndicator.style.display = 'none';
             
             if (natureSpots.length > 0) {
                 this.displayNatureSuggestions(natureSpots);
             } else {
-                this.displayNoResultsMessage(city);
+                this.displayNoResultsMessage(this.userCity || 'Your Location');
             }
         } catch (error) {
             console.error('Error finding nature spots:', error);
@@ -100,23 +233,7 @@ class WellnessExtension {
         }
     }
 
-    async geocodeCity(city) {
-        try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}&limit=1`);
-            const data = await response.json();
-            
-            if (data.length > 0) {
-                return {
-                    lat: parseFloat(data[0].lat),
-                    lon: parseFloat(data[0].lon)
-                };
-            }
-            return null;
-        } catch (error) {
-            console.error('Error geocoding city:', error);
-            return null;
-        }
-    }
+
 
     async findNatureSpotsNearby(lat, lon, city) {
         const natureSpots = [];
@@ -311,6 +428,8 @@ class WellnessExtension {
         // Show confirmation message
         this.showNotification(`Opening ${placeName} in Google Maps...`);
     }
+
+
 
     // Journaling System
     setupJournaling() {

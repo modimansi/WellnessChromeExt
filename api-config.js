@@ -12,8 +12,13 @@ const API_CONFIG = {
         requiresApiKey: false,
         rateLimit: '1 request per second',
         documentation: 'https://nominatim.org/release-docs/develop/api/Search/',
-        pros: ['Free', 'No API key required', 'Good coverage'],
-        cons: ['Rate limited', 'Less detailed business info', 'Basic search']
+        pros: ['Free', 'No API key required', 'Good coverage', 'City autocomplete support'],
+        cons: ['Rate limited', 'Less detailed business info', 'Basic search'],
+        features: {
+            autocomplete: true,
+            placeSearch: true,
+            coordinates: true
+        }
     },
     
     // Google Places API (Requires API key, very comprehensive)
@@ -96,6 +101,7 @@ USAGE INSTRUCTIONS:
    - Works immediately, no setup required
    - Good for development and testing
    - Rate limited to 1 request per second
+   - Includes city autocomplete and place search
 
 2. TO UPGRADE TO GOOGLE PLACES:
    - Follow google setup steps above

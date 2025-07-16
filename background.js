@@ -9,6 +9,7 @@ class WellnessBackground {
         this.setupAlarmListeners();
         this.setupNotificationListeners();
         this.setupInstallListener();
+        this.setupSidePanel();
     }
 
     setupAlarmListeners() {
@@ -49,6 +50,35 @@ class WellnessBackground {
         });
     }
 
+    setupSidePanel() {
+        // Handle extension icon clicks to open side panel
+        chrome.action.onClicked.addListener(async (tab) => {
+            try {
+                // Open the side panel
+                await chrome.sidePanel.open({ tabId: tab.id });
+            } catch (error) {
+                console.error('Error opening side panel:', error);
+                // Fallback: create a popup window if side panel fails
+                this.createPopupWindow();
+            }
+        });
+    }
+
+    async createPopupWindow() {
+        // Fallback method for browsers that don't support side panels
+        try {
+            await chrome.windows.create({
+                url: 'popup.html',
+                type: 'popup',
+                width: 400,
+                height: 600,
+                focused: true
+            });
+        } catch (error) {
+            console.error('Error creating popup window:', error);
+        }
+    }
+
     async triggerBreakReminder() {
         // Get random break activity
         const activities = [
@@ -87,15 +117,33 @@ class WellnessBackground {
         }
     }
 
-    handleBreakReminderClick() {
-        // Open the extension popup
-        chrome.action.openPopup();
+    async handleBreakReminderClick() {
+        // Open the extension side panel
+        try {
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (tabs[0]) {
+                await chrome.sidePanel.open({ tabId: tabs[0].id });
+            }
+        } catch (error) {
+            console.error('Error opening side panel:', error);
+            // Fallback to popup window
+            this.createPopupWindow();
+        }
     }
 
     async handleBreakReminderAction(buttonIndex) {
         if (buttonIndex === 0) {
-            // Take Break - open popup
-            chrome.action.openPopup();
+            // Take Break - open side panel
+            try {
+                const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+                if (tabs[0]) {
+                    await chrome.sidePanel.open({ tabId: tabs[0].id });
+                }
+            } catch (error) {
+                console.error('Error opening side panel:', error);
+                // Fallback to popup window
+                this.createPopupWindow();
+            }
         } else if (buttonIndex === 1) {
             // Snooze for 10 minutes
             await chrome.alarms.create('breakReminder', {

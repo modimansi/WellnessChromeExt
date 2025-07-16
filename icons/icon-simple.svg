@@ -1,1 +1,21 @@
- 
+<svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="24" cy="24" r="24" fill="#4CAF50"/>
+  
+  <!-- Leaf shape -->
+  <path d="M24 8C30 8 35 13 35 20C35 24 33 27 31 29C29 30 26 30 24 30C22 30 19 30 17 29C15 27 13 24 13 20C13 13 18 8 24 8Z" fill="#2E7D32"/>
+  
+  <!-- Stem -->
+  <rect x="23" y="24" width="2" height="12" fill="#2E7D32"/>
+  
+  <!-- Leaf vein -->
+  <path d="M24 12L24 24" stroke="#81C784" stroke-width="2" fill="none"/>
+  <path d="M20 16L24 20" stroke="#81C784" stroke-width="1" fill="none"/>
+  <path d="M28 16L24 20" stroke="#81C784" stroke-width="1" fill="none"/>
+  
+  <!-- Small wellness dots -->
+  <circle cx="18" cy="18" r="2" fill="#A5D6A7"/>
+  <circle cx="30" cy="18" r="2" fill="#A5D6A7"/>
+  <circle cx="16" cy="28" r="2" fill="#A5D6A7"/>
+  <circle cx="32" cy="28" r="2" fill="#A5D6A7"/>
+</svg> 

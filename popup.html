@@ -21,9 +21,16 @@
         <div class="tab-content active" id="nature-tab">
             <div class="feature-section">
                 <h2>🌳 Nature Connection</h2>
-                <div class="city-input-container">
-                    <input type="text" id="city-input" placeholder="Enter your city (e.g., New York, NY)" class="city-input">
-                    <button id="nature-break-btn" class="primary-btn">Find Nature Nearby</button>
+                <div class="location-detection-container">
+                    <div class="location-status" id="location-status">
+                        <p>📍 Click below to detect your location automatically</p>
+                    </div>
+                    <button id="detect-location-btn" class="primary-btn">
+                        🗺️ Use My Location
+                    </button>
+                    <button id="nature-break-btn" class="primary-btn" style="display: none;">
+                        Find Nature Nearby
+                    </button>
                 </div>
                 <div id="nature-suggestions" class="suggestions-container" style="display: none;"></div>
                 <div id="loading-indicator" class="loading-indicator" style="display: none;">

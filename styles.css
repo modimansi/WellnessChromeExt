@@ -213,22 +213,16 @@ body {
     line-height: 1.5;
 }
 
-#journal-entry {
-    width: 100%;
-    padding: 12px;
-    border: 2px solid #e0e0e0;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 14px;
-    resize: vertical;
-    margin-bottom: 12px;
-    min-height: 100px;
+.journal-buttons {
+    margin-bottom: 16px;
 }
 
-#journal-entry:focus {
-    outline: none;
-    border-color: #4CAF50;
+.journal-buttons .primary-btn {
+    font-size: 14px;
+    padding: 10px 20px;
 }
+
+
 
 /* Location Detection */
 .location-detection-container {

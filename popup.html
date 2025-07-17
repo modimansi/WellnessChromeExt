@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wellness Break Assistant</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="api-config.js"></script>
 </head>
 <body>
     <div class="container">
@@ -42,9 +43,10 @@
             <div class="feature-section">
                 <h2>📝 Mindful Journaling</h2>
                 <div id="journal-prompts" class="prompts-container">
-                    <p id="current-prompt">Select a nature location to get mindful prompts</p>
-                    <textarea id="journal-entry" placeholder="Write your mindful reflection here..." rows="6"></textarea>
-                    <button id="save-journal" class="secondary-btn">Save Entry</button>
+                    <p id="current-prompt">Click "Generate Prompt" to get a thoughtful nature reflection question</p>
+                    <div class="journal-buttons">
+                        <button id="generate-prompt" class="primary-btn">✨ Generate Prompt</button>
+                    </div>
                 </div>
             </div>
         </div>

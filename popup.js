@@ -236,18 +236,44 @@ class WellnessExtension {
 
 
     async findNatureSpotsNearby(lat, lon, city) {
+        // Check if Google Places API key is available
+        const hasGoogleKey = window.API_CONFIG && window.API_CONFIG.google && window.API_CONFIG.google.apiKey;
+        
+        if (hasGoogleKey) {
+            return await this.searchWithGooglePlaces(lat, lon);
+        } else {
+            // Fallback to OpenStreetMap with better filtering
+            return await this.searchWithOpenStreetMap(lat, lon);
+        }
+    }
+
+    async searchWithGooglePlaces(lat, lon) {
+        // Note: Direct Google Places API calls from browser are blocked by CORS
+        // This is a placeholder for when you implement a backend proxy
+        console.log('Google Places API requires a backend proxy due to CORS restrictions');
+        console.log('Falling back to enhanced OpenStreetMap search...');
+        
+        // Fall back to enhanced OpenStreetMap search
+        return await this.searchWithOpenStreetMap(lat, lon);
+    }
+
+    async searchWithOpenStreetMap(lat, lon) {
         const natureSpots = [];
         
-        // Define search queries for different types of nature spots
+        // Define search queries for specific natural locations
         const searchQueries = [
-            { query: 'park', icon: '🌳', type: 'Park' },
-            { query: 'garden', icon: '🌺', type: 'Garden' },
-            { query: 'trail', icon: '🥾', type: 'Trail' },
-            { query: 'forest', icon: '🌲', type: 'Forest' },
-            { query: 'lake', icon: '🏞️', type: 'Lake' },
-            { query: 'river', icon: '🌊', type: 'River' },
-            { query: 'beach', icon: '🏖️', type: 'Beach' },
-            { query: 'botanical garden', icon: '🌿', type: 'Botanical Garden' }
+            { query: 'hiking trail path', icon: '🥾', type: 'Trail' },
+            { query: 'walking trail route', icon: '🚶', type: 'Trail' },
+            { query: 'forest preserve', icon: '🌲', type: 'Forest' },
+            { query: 'provincial forest', icon: '🌲', type: 'Forest' },
+            { query: 'lake reservoir', icon: '🏞️', type: 'Lake' },
+            { query: 'creek stream', icon: '🌊', type: 'River' },
+            { query: 'river valley', icon: '🌊', type: 'River' },
+            { query: 'beach waterfront', icon: '🏖️', type: 'Beach' },
+            { query: 'mountain peak', icon: '⛰️', type: 'Mountain' },
+            { query: 'waterfall falls', icon: '💦', type: 'Waterfall' },
+            { query: 'conservation area', icon: '🦋', type: 'Nature Reserve' },
+            { query: 'nature preserve', icon: '🦋', type: 'Nature Reserve' }
         ];
 
         try {
@@ -261,25 +287,108 @@ class WellnessExtension {
             const uniqueSpots = this.removeDuplicates(natureSpots);
             const sortedSpots = this.sortByDistance(uniqueSpots, lat, lon);
             
+            // Filter to only include spots within 35km (21.7 miles)
+            const filteredSpots = sortedSpots.filter(spot => {
+                const distance = this.calculateDistance(lat, lon, spot.lat, spot.lon);
+                return distance <= 21.7; // 35km = 21.7 miles
+            });
+            
             // Return top 8 results
-            return sortedSpots.slice(0, 8);
+            return filteredSpots.slice(0, 8);
         } catch (error) {
             console.error('Error searching for nature spots:', error);
             return [];
         }
     }
 
+    determineNatureType(name, types) {
+        const nameLower = name.toLowerCase();
+        
+        if (nameLower.includes('trail') || nameLower.includes('hike')) return 'Trail';
+        if (nameLower.includes('forest') || nameLower.includes('wood')) return 'Forest';
+        if (nameLower.includes('lake') || nameLower.includes('reservoir')) return 'Lake';
+        if (nameLower.includes('river') || nameLower.includes('creek')) return 'River';
+        if (nameLower.includes('beach') || nameLower.includes('shore')) return 'Beach';
+        if (nameLower.includes('mountain') || nameLower.includes('peak') || nameLower.includes('summit')) return 'Mountain';
+        if (nameLower.includes('waterfall') || nameLower.includes('falls')) return 'Waterfall';
+        if (nameLower.includes('reserve') || nameLower.includes('conservation')) return 'Nature Reserve';
+        if (nameLower.includes('park') && (nameLower.includes('national') || nameLower.includes('provincial') || nameLower.includes('state'))) return 'Nature Reserve';
+        
+        // Check Google Places types
+        if (types && types.includes('natural_feature')) return 'Natural Area';
+        
+        return 'Natural Area';
+    }
+
+    getIconForType(type) {
+        const icons = {
+            'Trail': '🥾',
+            'Forest': '🌲',
+            'Lake': '🏞️',
+            'River': '🌊',
+            'Creek': '🏞️',
+            'Beach': '🏖️',
+            'Mountain': '⛰️',
+            'Hill': '🏔️',
+            'Waterfall': '💦',
+            'Natural Area': '🌿',
+            'Nature Reserve': '🦋'
+        };
+        
+        return icons[type] || '🌿';
+    }
+
     async searchPlacesOSM(lat, lon, query, type, icon) {
         try {
-            const radius = 0.05; // Roughly 5km radius
+            const radius = 0.315; // Roughly 35km radius (35km ÷ 111km/degree)
             const bbox = `${lon - radius},${lat - radius},${lon + radius},${lat + radius}`;
             
             const response = await fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&bounded=1&viewbox=${bbox}&limit=10&extratags=1`
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&bounded=1&viewbox=${bbox}&limit=15&extratags=1`
             );
             const data = await response.json();
             
-            return data.map(place => ({
+            // Filter out parks, gardens, and fake/administrative locations
+            const filteredData = data.filter(place => {
+                const name = place.display_name.toLowerCase();
+                const type = place.type?.toLowerCase() || '';
+                const category = place.category?.toLowerCase() || '';
+                const fullName = place.display_name.toLowerCase();
+                
+                // Exclude fake administrative codes like "54C - Greenbelt"
+                const isFakeCode = /^\d+[a-z]?\s*-\s*(greenbelt|green belt|green space)/i.test(place.display_name);
+                if (isFakeCode) return false;
+                
+                // Exclude obvious administrative divisions or codes
+                const isAdminCode = /^\d+[a-z]?\s*(district|division|zone|sector|area)/i.test(place.display_name);
+                if (isAdminCode) return false;
+                
+                // Exclude very generic or administrative names
+                const genericNames = ['greenbelt', 'green belt', 'green space', 'open space', 'natural area'];
+                const isGeneric = genericNames.some(generic => 
+                    name === generic || name.startsWith(generic + ' ') || name.endsWith(' ' + generic)
+                );
+                if (isGeneric && !name.includes('reserve') && !name.includes('park')) return false;
+                
+                // Exclude parks, gardens, playgrounds, and urban areas
+                const excludeKeywords = [
+                    'park', 'garden', 'playground', 'recreation', 'botanical', 'zoo',
+                    'golf', 'tennis', 'sports', 'stadium', 'pool', 'gym', 'mall'
+                ];
+                const hasExcludeKeyword = excludeKeywords.some(keyword => 
+                    name.includes(keyword) || type.includes(keyword) || category.includes(keyword)
+                );
+                if (hasExcludeKeyword) return false;
+                
+                // Only include results that have real place characteristics
+                const hasRealPlaceName = place.display_name.includes(',') && 
+                                        place.display_name.split(',').length >= 2 &&
+                                        !place.display_name.match(/^\d+/);
+                
+                return hasRealPlaceName;
+            });
+            
+            return filteredData.map(place => ({
                 name: place.display_name.split(',')[0],
                 type: type,
                 icon: icon,
@@ -334,17 +443,20 @@ class WellnessExtension {
 
     generateDescription(type, place) {
         const descriptions = {
-            'Park': 'A great place for walking, relaxation, and connecting with nature',
-            'Garden': 'Beautiful gardens perfect for peaceful contemplation',
-            'Trail': 'Walking or hiking trail for outdoor exercise and fresh air',
-            'Forest': 'Natural forest area for a deeper connection with nature',
+            'Trail': 'Natural trail perfect for hiking, walking, and fresh air',
+            'Forest': 'Wild forest area for deep nature connection and solitude',
             'Lake': 'Peaceful waterside location for reflection and tranquility',
-            'River': 'Riverside area perfect for mindful walking and listening to water',
-            'Beach': 'Sandy or rocky shoreline for ocean meditation and fresh air',
-            'Botanical Garden': 'Curated plant collections for educational nature experiences'
+            'Creek': 'Natural creek with flowing water for peaceful contemplation',
+            'River': 'Riverside area perfect for mindful walking and water sounds',
+            'Beach': 'Natural shoreline for ocean meditation and fresh sea air',
+            'Mountain': 'Mountain area offering elevated views and challenging hikes',
+            'Hill': 'Natural hilltop location for scenic views and peaceful walks',
+            'Waterfall': 'Natural waterfall perfect for meditation and nature sounds',
+            'Natural Area': 'Protected natural space for wildlife viewing and quiet reflection',
+            'Nature Reserve': 'Preserved wilderness area for authentic nature experiences'
         };
         
-        return descriptions[type] || 'A natural location perfect for mindful breaks and reflection';
+        return descriptions[type] || 'A natural location perfect for outdoor wellness and reflection';
     }
 
     displayNatureSuggestions(suggestions) {
@@ -355,20 +467,19 @@ class WellnessExtension {
             const item = document.createElement('div');
             item.className = 'nature-item';
             
-            const distance = place.distance ? `${place.distance.toFixed(1)} miles` : 'nearby';
+            const distanceText = place.distance ? 
+                `${place.distance.toFixed(1)} miles (${(place.distance * 1.609).toFixed(1)} km)` : 
+                'nearby';
             
             item.innerHTML = `
                 <div class="nature-content">
                     <h4>${place.icon || '🌿'} ${place.name}</h4>
-                    <p><strong>${place.type}</strong> • ${distance}</p>
+                    <p><strong>${place.type}</strong> • ${distanceText}</p>
                     <p>${place.description}</p>
                 </div>
                 <div class="nature-actions">
                     <button class="map-btn" data-lat="${place.lat}" data-lon="${place.lon}" data-name="${place.name}">
                         🗺️ View on Map
-                    </button>
-                    <button class="journal-btn">
-                        📝 Journal Here
                     </button>
                 </div>
             `;
@@ -378,13 +489,6 @@ class WellnessExtension {
             mapBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.openGoogleMaps(place.lat, place.lon, place.name);
-            });
-            
-            // Add click handler for "Journal Here" button
-            const journalBtn = item.querySelector('.journal-btn');
-            journalBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.selectNatureLocation(place);
             });
             
             container.appendChild(item);
@@ -416,11 +520,8 @@ class WellnessExtension {
     }
 
     openGoogleMaps(lat, lon, placeName) {
-        // Create Google Maps URL with coordinates
-        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
-        
-        // Alternative URL format with place name for better context
-        // const mapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(placeName)}/@${lat},${lon},15z`;
+        // Use place name for search instead of coordinates for better accuracy
+        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeName)}`;
         
         // Open in new tab
         chrome.tabs.create({ url: mapsUrl });
@@ -433,66 +534,45 @@ class WellnessExtension {
 
     // Journaling System
     setupJournaling() {
-        const saveBtn = document.getElementById('save-journal');
-        saveBtn.addEventListener('click', () => {
-            this.saveJournalEntry();
+        const generateBtn = document.getElementById('generate-prompt');
+        
+        generateBtn.addEventListener('click', () => {
+            this.generateNaturePrompt();
         });
     }
 
-    selectNatureLocation(place) {
+    generateNaturePrompt() {
         const prompts = [
-            `You're at ${place.name}. Write about a childhood memory of being in nature. What do you remember?`,
-            `As you sit at ${place.name}, how do you feel connected to this land? What does it tell you?`,
-            `Looking around ${place.name}, what in nature speaks to you today? Why?`,
-            `Describe the sounds, smells, and sights at ${place.name}. How do they make you feel?`,
-            `If you could have a conversation with the oldest tree at ${place.name}, what would you ask?`,
-            `What lesson does ${place.name} teach you about peace and stillness?`,
-            `Write about how visiting ${place.name} changes your perspective on your daily life.`
+            // Memory & Connection
+            "Describe a moment when you felt completely held by the natural world",
+            "Tell me about a weather pattern that always takes you back to a specific time and place",
+            "What's the first wild animal you remember truly seeing - not just noticing, but really seeing?",
+            "Describe the smell that most strongly connects you to the outdoors",
+            
+            // Seasonal & Cyclical
+            "How does your body know when the seasons are changing, beyond what you see?",
+            "Tell me about a time you witnessed something in nature that felt like a secret meant just for you",
+            "What does dawn feel like in your favorite outdoor place?",
+            "Describe how you've watched a particular landscape change over the years",
+            
+            // Elements & Senses
+            "What does your skin remember about wind?",
+            "Tell me about the last time you felt genuinely cold outdoors - not uncomfortable, but alive",
+            "Describe the sound that means 'home in nature' to you",
+            "What's the most perfect rock you've ever held?",
+            
+            // Deeper Reflection
+            "When has the natural world taught you something you couldn't learn anywhere else?",
+            "Tell me about a plant or tree you've returned to throughout your life",
+            "What part of the natural world do you feel most kinship with?",
+            "Describe a moment when you realized you were part of something much larger"
         ];
 
         const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
         document.getElementById('current-prompt').textContent = randomPrompt;
-        
-        // Store the selected location
-        this.currentLocation = place;
     }
 
-    async saveJournalEntry() {
-        const entry = document.getElementById('journal-entry').value;
-        const prompt = document.getElementById('current-prompt').textContent;
-        
-        if (!entry.trim()) {
-            alert('Please write something before saving!');
-            return;
-        }
 
-        const journalData = {
-            date: new Date().toISOString(),
-            location: this.currentLocation,
-            prompt: prompt,
-            entry: entry,
-            timestamp: Date.now()
-        };
-
-        try {
-            // Save to Chrome storage
-            const result = await chrome.storage.local.get(['journalEntries']);
-            const entries = result.journalEntries || [];
-            entries.push(journalData);
-            
-            await chrome.storage.local.set({ journalEntries: entries });
-            
-            // Clear the form
-            document.getElementById('journal-entry').value = '';
-            document.getElementById('current-prompt').textContent = 'Entry saved! Select another location for a new prompt.';
-            
-            // Show success message
-            this.showNotification('Journal entry saved successfully!');
-        } catch (error) {
-            console.error('Error saving journal entry:', error);
-            alert('Error saving entry. Please try again.');
-        }
-    }
 
     // Break Reminders System
     setupBreakReminders() {

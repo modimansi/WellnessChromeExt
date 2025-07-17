@@ -1,7 +1,7 @@
 // API Configuration for Places Search
 // This file contains settings for different places API providers
 
-const API_CONFIG = {
+window.API_CONFIG = window.API_CONFIG || {
     // Current active provider
     activeProvider: 'openstreetmap', // Options: 'openstreetmap', 'google', 'foursquare'
     
@@ -47,7 +47,7 @@ const API_CONFIG = {
 };
 
 // Instructions for setting up each API provider
-const SETUP_INSTRUCTIONS = {
+window.SETUP_INSTRUCTIONS = window.SETUP_INSTRUCTIONS || {
     openstreetmap: {
         steps: [
             'No setup required! OpenStreetMap Nominatim is free and works out of the box.',
@@ -83,15 +83,9 @@ const SETUP_INSTRUCTIONS = {
     }
 };
 
-// Export for use in popup.js
+// Export for use in popup.js (already available on window object)
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { API_CONFIG, SETUP_INSTRUCTIONS };
-}
-
-// For browser environment
-if (typeof window !== 'undefined') {
-    window.API_CONFIG = API_CONFIG;
-    window.SETUP_INSTRUCTIONS = SETUP_INSTRUCTIONS;
+    module.exports = { API_CONFIG: window.API_CONFIG, SETUP_INSTRUCTIONS: window.SETUP_INSTRUCTIONS };
 }
 
 /* 
